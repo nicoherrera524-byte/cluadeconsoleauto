@@ -1,0 +1,24 @@
+#!/bin/zsh
+# Arranca claude con tu cuenta normal; al 99 % de la ventana de 5 h (señal del mod auto-console)
+# lo cierra y retoma la misma sesión con tu cuenta de Console (ECO_CONFIG_DIR) y ECO_MODEL.
+SIG=$HOME/.claude/eco-signal.json
+ALT=${ECO_CONFIG_DIR:-$HOME/.claude-console}
+MODEL=${ECO_MODEL:-claude-sonnet-5-5}
+rm -f "$SIG"
+
+( while [[ ! -f "$SIG" ]]; do sleep 2; done; sleep 4; pkill -TERM -P $$ -f 'claude' ) &
+WATCH=$!
+claude "$@"
+kill $WATCH 2>/dev/null
+
+[[ -f "$SIG" ]] || exit 0
+id=$(/usr/bin/python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["sessionId"])' "$SIG")
+src=$(find "$HOME/.claude/projects" -name "$id.jsonl" -print -quit)
+if [[ -n "$src" ]]; then
+  rel=${src#$HOME/.claude/}
+  mkdir -p "$ALT/$(dirname "$rel")"
+  cp "$src" "$ALT/$rel"
+fi
+rm -f "$SIG"
+echo "→ Cuenta normal agotada. Continuando con Console ($MODEL)…"
+CLAUDE_CONFIG_DIR=$ALT exec claude --resume "$id" --model "$MODEL"

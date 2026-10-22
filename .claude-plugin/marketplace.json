@@ -1,0 +1,5 @@
+{
+  "name": "auto-console",
+  "owner": { "name": "Nico" },
+  "plugins": [{ "name": "auto-console", "source": "./" }]
+}
